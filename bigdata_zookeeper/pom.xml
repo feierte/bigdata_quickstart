@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>bigdata_quickstart</artifactId>
+        <groupId>org.sperri</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>bigdata_zookeeper</artifactId>
+
+    <dependencies>
+        <!-- zookeeper依赖 -->
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+            <!--<exclusions>
+                <exclusion>
+                    <artifactId>log4j</artifactId>
+                    <groupId>log4j</groupId>
+                </exclusion>
+            </exclusions>-->
+        </dependency>
+
+        <!-- curator依赖 -->
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-client</artifactId>
+        </dependency>
+
+        <dependency>
+            <!-- Zookeeper API的高层封装，大大简化Zookeeper客户端编程，添加了例如Zookeeper连接管理、重试机制等 -->
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-framework</artifactId>
+        </dependency>
+
+        <dependency>
+            <!-- jdk8 异步操作 -->
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-x-async</artifactId>
+        </dependency>
+
+        <dependency>
+            <!-- 所有典型应用场景。例如：分布式锁,Master选举等。需要依赖client和framework，需设置自动获取依赖 -->
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-recipes</artifactId>
+        </dependency>
+
+        <dependency>
+            <!-- 服务注册发现，在SOA/分布式系统中，服务需要相互寻找。curator-x-discovery提供了服务注册，找到特定服务的单个实例，和通知服务实例何时更改。-->
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-x-discovery</artifactId>
+        </dependency>
+
+        <dependency>
+            <!-- 服务注册发现管理器,可以和curator-x-discovery或者非java程序程序使用RESTful Web服务以注册，删除，查询等服务。 -->
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-x-discovery-server</artifactId>
+        </dependency>
+    </dependencies>
+</project>
