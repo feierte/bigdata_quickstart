@@ -12,6 +12,7 @@
         <module>bigdata_hadoop</module>
         <module>bigdata_zookeeper</module>
         <module>bigdata_hbase</module>
+        <module>bigdata_flume</module>
     </modules>
 
     <properties>
@@ -34,6 +35,7 @@
         <hbase.version>2.2.1</hbase.version>
         <curator.version>4.0.1</curator.version>
         <lombok.version>1.18.8</lombok.version>
+        <flume.version>1.9.0</flume.version>
 
         <slf4j.version>1.7.25</slf4j.version>
         <log4j2.version>2.11.1</log4j2.version>
@@ -196,6 +198,11 @@
                 <version>${hadoop.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.flume</groupId>
+                <artifactId>flume-ng-core</artifactId>
+                <version>${flume.version}</version>
+            </dependency>
 
 
 
