@@ -16,6 +16,8 @@
         <maven.compiler.target>8</maven.compiler.target>
         <scala.version>2.12</scala.version>
         <flink.version>1.14.4</flink.version>
+        <logback.version>1.2.3</logback.version>
+        <log4j-over-slf4j.version>1.7.30</log4j-over-slf4j.version>
     </properties>
 
     <dependencies>
@@ -41,14 +43,31 @@
             <version>${flink.version}</version>
         </dependency>
 
-
-
-
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <!-- 日志依赖 -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-access</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>${log4j-over-slf4j.version}</version>
         </dependency>
     </dependencies>
 
