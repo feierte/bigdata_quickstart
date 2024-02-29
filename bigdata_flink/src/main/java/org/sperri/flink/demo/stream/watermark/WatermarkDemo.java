@@ -31,7 +31,7 @@ public class WatermarkDemo {
         );
 
         SingleOutputStreamOperator<EventLog> watermarkedStream = source.assignTimestampsAndWatermarks(
-                WatermarkStrategy.<EventLog>forBoundedOutOfOrderness(Duration.of(10, ChronoUnit.SECONDS))
+                WatermarkStrategy.<EventLog>forBoundedOutOfOrderness(Duration.ofSeconds(10))
                         .withTimestampAssigner((event, recordTimestamp) -> event.getTime())
         );
 
