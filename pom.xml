@@ -38,13 +38,9 @@
         <curator.version>4.0.1</curator.version>
         <lombok.version>1.18.8</lombok.version>
         <flume.version>1.9.0</flume.version>
-        <kafka.version>3.1.0</kafka.version>
-
-
         <slf4j.version>1.7.25</slf4j.version>
         <log4j2.version>2.11.1</log4j2.version>
         <jackson.version>2.14.3</jackson.version>
-
         <junit.version>5.5.2</junit.version>
     </properties>
 
@@ -272,37 +268,6 @@
                 <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
-
-            <!-- kafka依赖 -->
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-clients</artifactId>
-                <version>${kafka.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka</artifactId>
-                <version>${kafka.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-streams</artifactId>
-                <version>${kafka.version}</version>
-            </dependency>
-
-            <!-- spring-kafka依赖 begin -->
-            <dependency>
-                <groupId>org.springframework.kafka</groupId>
-                <artifactId>spring-kafka</artifactId>
-                <version>${springboot.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.kafka</groupId>
-                <artifactId>spring-kafka-test</artifactId>
-                <version>${springboot.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <!-- kafka依赖 end -->
 
             <!-- jackson依赖 -->
             <dependency>

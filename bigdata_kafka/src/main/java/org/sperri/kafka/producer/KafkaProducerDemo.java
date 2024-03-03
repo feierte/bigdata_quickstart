@@ -1,28 +1,30 @@
 package org.sperri.kafka.producer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.sperri.kafka.entity.AccessLog;
+import org.sperri.kafka.entity.EventLog;
+import org.sperri.kafka.util.KafkaUtils;
 
 import java.util.Date;
 import java.util.Properties;
 import java.util.Random;
 
+import static org.sperri.kafka.util.KafkaUtils.KAFKA_BROKER_SERVER;
+
 /**
  * @author Jie Zhao
  * @date 2022/5/2 20:55
  */
-public class AccessLogProducer {
+public class KafkaProducerDemo {
 
     private static final Random DEFAULT_RANDOM = new Random();
 
     public static void main(String[] args) throws Exception {
-        String topicName = "access-log-topic";
+        String topicName = "event-log-topic";
         Properties props = new Properties();
-        props.put("bootstrap.servers", "zj:9092");
+        props.put("bootstrap.servers", KAFKA_BROKER_SERVER);
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
@@ -34,7 +36,7 @@ public class AccessLogProducer {
 
             long lateness = DEFAULT_RANDOM.nextInt(10000) * 1000;
             long latenessTime = new Date().getTime() - lateness;
-            AccessLog accessLog = AccessLog.builder()
+            EventLog accessLog = EventLog.builder()
                     .apiId(apiIds[new Random().nextInt(6)])
                     .occurTime(new Date(latenessTime))
                     .build();

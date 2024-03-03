@@ -12,7 +12,7 @@ import java.util.Date;
  */
 @Data
 @Builder
-public class AccessLog {
+public class EventLog {
 
     @JsonProperty("api_id")
     private Integer apiId;

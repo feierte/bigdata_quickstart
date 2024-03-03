@@ -3,21 +3,24 @@ package org.sperri.kafka.consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.sperri.kafka.util.KafkaUtils;
 
 import java.util.Arrays;
 import java.util.Properties;
+
+import static org.sperri.kafka.util.KafkaUtils.KAFKA_BROKER_SERVER;
 
 /**
  * @author Jie Zhao
  * @date 2022/5/2 22:13
  */
-public class AccessLogConsumer {
+public class KafkaConsumerDemo {
 
     public static void main(String[] args) {
-        String topicName = "access-log-topic";
+        String topicName = "event-log-topic";
         Properties props = new Properties();
         ///brokers 地址
-        props.put("bootstrap.servers", "zj:9092");
+        props.put("bootstrap.servers", KAFKA_BROKER_SERVER);
 
         //指定该 consumer 将加入的消费组
         props.put("group.id", "access-log-consumer");
