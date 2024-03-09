@@ -5,7 +5,6 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.sperri.kafka.entity.EventLog;
-import org.sperri.kafka.util.KafkaUtils;
 
 import java.util.Date;
 import java.util.Properties;
@@ -28,7 +27,7 @@ public class KafkaProducerDemo {
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
-        Producer<String, String> producer = new KafkaProducer<String, String>(props);
+        Producer<String, String> producer = new KafkaProducer<>(props);
 
         int[] apiIds = new int[] {1, 2, 3, 4, 5, 6};
         ObjectMapper objectMapper = new ObjectMapper();
