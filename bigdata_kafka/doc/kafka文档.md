@@ -149,7 +149,7 @@ $ bin/kafka-console-consumer.sh --topic quickstart-events --from-beginning --boo
 
 ​	kafka 控制器组件(controller) 即 broker， 是 Kafka 的核心组件。它的主要作用是在 zooKeeper或kraft 的帮助下管理和协调整个 Kafka 集群
 
-​	集群中任意一台 broker 都能充当controller的角色，但是在运行过程中，只能有一个 broker 成为controller，来执行管理和协调的职责。换句话说，每个正常运转的 Kafka 集群，在任意时刻都有且只有一个controller。kafka集群采用的是主从架构，controller即相当于分布式软件中的leader。
+​	集群中任意一台broker都能充当controller的角色，但是在运行过程中，只能有一个broker成为controller，来执行管理和协调的职责。换句话说，每个正常运转的Kafka集群，在任意时刻都有且只有一个controller。kafka集群采用的是主从架构，controller即相当于分布式软件中的leader。
 
 
 
@@ -424,6 +424,72 @@ producer.send(record);
 
 
 ​	Broker不保存订阅者的状态，由订阅者自己保存。 无状态导致消息的删除成为难题（可能删除的消息正在被订阅），Kafka采用基于时间的SLA（服务保证），消息保存一定时间（通常7天）后会删除。 
+
+
+
+## 消费消息流程
+
+
+
+
+
+
+
+
+
+
+
+## 消费者端Offset管理
+
+
+
+`__consumer_offset_`
+
+
+
+## 消费者组协调者
+
+
+
+## 消费者调优
+
+
+
+消费者调优参数
+
+`heartbeat.interval.ms`
+
+`session.timeout.ms`
+
+`max.poll.interval.ms`
+
+
+
+`fetch.max.bytes` 拉取一条消息的最大字节数，默认值：1m，一般建议设置大一些
+
+`max.poll.records`
+
+`connection.max.idle.ms` consumer与broker的socket连接如果空闲超过了该值指定的时间，就会自动回收该连接，但是下次消费会重新建立新的socket连接。这个值建议设置为-1，不回收空闲socket连接。
+
+`enable.auto.commit`是否自动提交偏移量
+
+`auto.commit.interval.ms`每隔多久提交一次偏移量，默认值：5000ms
+
+`auto.offset.reset`
+
+
+
+
+
+# 高级功能
+
+## 延迟调度机制
+
+
+
+## 时间轮机制
+
+
 
 
 
