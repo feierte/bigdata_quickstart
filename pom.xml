@@ -15,6 +15,7 @@
         <module>bigdata_flink</module>
         <module>bigdata_kafka</module>
         <module>bigdata_flume</module>
+        <module>bigdata_netty</module>
     </modules>
 
     <properties>
