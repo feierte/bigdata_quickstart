@@ -18,6 +18,8 @@
 
 package org.sperri.flink.demo.example.fraud;
 
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestOptions;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.walkthrough.common.entity.Transaction;
@@ -28,16 +30,20 @@ import org.apache.flink.walkthrough.common.source.TransactionSource;
  */
 public class FraudDetectionJobDemo {
     public static void main(String[] args) throws Exception {
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration configuration = new Configuration();
+        // 指定本地 WEB-UI 端口号
+        configuration.setInteger(RestOptions.PORT, 8082);
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(configuration);
 
         DataStream<Transaction> transactions = env
                 .addSource(new TransactionSource())
                 .name("transactions");
 
         transactions
-                .rebalance()
+                .rescale()
                 .map(Transaction::getAccountId)
-                .print();
+                .print()
+                .setParallelism(1);
 
 //		.keyBy(Transaction::getAccountId)
 //			.process(new FraudDetector())

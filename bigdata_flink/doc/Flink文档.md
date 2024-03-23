@@ -104,6 +104,14 @@ KafkaSource<String> kafkaSource = KafkaSource.<String>builder()
 
 
 
+one-to-one
+
+redistribution
+
+
+
+
+
 ## 多流转换
 
 
@@ -150,29 +158,77 @@ KafkaSource<String> kafkaSource = KafkaSource.<String>builder()
 
 
 
+## 核心概念
+
+​	本章节介绍一些flink应用程序中的核心概念。
+
+[Flink核心概念：job、task、taskslot等]([【深入浅出flink】第3篇：多图讲解flink核心概念（通俗易懂）Job、Task、SubTask、Slot、Slotsharing、Parallelism、Operator Chains_flink job-CSDN博客](https://blog.csdn.net/qq_37555071/article/details/122374146) )
+
+
+
+### Job
+
+​	Job可以表示一个独立提交给Flink运行的应用程序。通常Job是通过JobManager提交到Flink中的，所以经由JobManager提交的都是指Job，不过JobManager一次提交的可以包含多个Job。
+
+### 算子（Operator）
+
+​	算子是Flink提供给用户的接口，通过该接口能够对数据流进行处理。通常一个接口称为一个算子，常见算子有：map、filter、flatmap、keyBy等等。
+
+### 算子链（Operator Chain）
+
+​	算子链顾名思义就是将多个算子链接到一起。因为Flink是分布式流计算引擎，是运行在不同机器上的，算子与算子之间会有数据传递，数据传递过程会有一系列序列化、反序列化和网络IO等耗时操作，Flink为了提升性能，会将可以链接在一起的算子链接一起，这样他们直接的数据就可以在一个线程中传递，不需要经过以上复杂且耗费性能的操作。
+
+![](Flink文档.assets/算子链.png)
+
+disableChain startNewChain
+
+
+
+### Task
+
+​	Task是一个逻辑概念，一个Operator就代表一个Task（多个Operator被chain之后产生的新Operator算一个Operator）
+
+
+
+### SubTask
+
+​	SubTask是调度的基本单元。SubTask是Flink运行中的Task实例，Task会按照算子的并行度设置具有一个或多个SubTask，每个SubTask实例运行在不同的TaskSlot中。
+
+
+
 ## JobManager
 
 
 
 ## TaskManager
 
+​	TaksManager简称TM，是负责真正执行flink任务的jvm进程，一个TM可以执行一个或者多个subtask
 
+### TaskSlot
 
-### TM中核心概念
+​	**TaskSlot是资源分配的基本单元。**
 
+​	TaskSlot起到隔离TM中的资源作用，注意：**仅隔离内存资源，不隔离CPU资源**。TM中有一个或多个TaskSlot，TM将自身内存资源均分给TaskSlot，但TaskSlot之间共享CPU资源。例如：一个TM有三个TaskSlot，意味着每个TaskSlot有三分之一TaskManager内存。 
 
-
-#### task
-
-#### 算子链
-
-disableChain startNewChain
+> 尽管slot并不单独分配cpu资源，我们可以通过当前taskmanger的cpu core数量来设置slot数，这样一个slot占用一个cpu core，可以更快的执行。为了更好的性能，一般cpu core数量设置为slot数，或者slot数+1
 
 
 
-#### taskslot
+**槽位共享组（slot sharing group）**
 
-槽位共享组（slot sharing group）
+​	为了更高效地使用资源，Flink默认允许同一个Job中不同Task的SubTask运行在同一个Slot中，这就是SlotSharing（子任务共享）。注意以下描述中的几个关键条件：
+
+- 必须是同一个Job。这个很好理解，slot是给Job分配的资源，目的就是隔离各个Job，如果跨Job共享，但隔离就失效了；
+- 必须是不同Task的Subtask。这样是为了更好的资源均衡和利用。一个计算流中（pipeline），每个Subtask的资源消耗肯定是不一样的，如果都均分slot，那必然有些资源利用率高，有些低。限制不同Task的Subtask共享可以尽量让资源占用高的和资源占用低的放一起，而不是把多个高的或多个低的放一起。比如一个计算流中，source和sink一般都是IO操作，特别是source，一般都是网络读，相比于中间的计算Operator，资源消耗并不大。相反，如果是同一个Task的Subtask放在一个slot中执行，我们就违背了并行执行的初心，放在一个slot不就是串行执行了。
+
+默认是允许sharing的，可以通过slotSharingGroup给不同算子设置不同的共享组。关闭这个特性，不同共享组的算子一定在两个slot中。
+
+
+
+
+
+
+
 
 
 
