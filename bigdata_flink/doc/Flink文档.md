@@ -148,8 +148,6 @@ redistribution
 
 
 
-## 
-
 
 
 # Flink架构
@@ -244,13 +242,285 @@ disableChain startNewChain
 
 事件时间、处理时间、注入时间
 
+​	事件时间指的是该事件发生时的时间，不受时区等外在因素的影响。事件时间一般在数据流中的元素中携带的，所以可以从数据流中的元素提取来的。
+
+## 水位线（Watermark）
+
+​	Flink是流计算引擎，其中数据流是核心概念，相关的分析、统计、聚合、窗口等功能都是基于时间的，但该时间是如何定义和衡量的呢？那么就要用到上文介绍的事件时间。
+
+​	在理想的情况下，无论数据的到达时间如何，使用事件时间都可以产生连续且确定的结果。但现实往往是残酷的，只要在事件是顺序到达Flink的这种情况才会实现这个效果。如下图所示，数据流中的事件是顺序到达Flink引擎的。事件顺序的好处是基于事件时间的后续统计、窗口等处理都可以产生连续且确定的结果，这个特性是非常重要的。
+
+> 这里的**事件顺序到达**是指事件到达Flink引擎是顺序的。
+>
+> 到达Flink引擎的顺序与否是与事件的产生顺序无关的，如果事件是否是顺序生成还是乱序生成，只要到达Flink引擎的时候是顺序的都可以
+
+​	
+
+![A data stream with events (in order) and watermarks](.\Flink文档.assets\stream_watermark_in_order.svg)
+
+​	生产实践中绝大多数会出现下图的情况，事件时间是乱序的，造成乱序的原因是多样的，例如网络波动、消息发到kafka等消息中间件不是顺序的或者消费时导致乱序等等这一系列因素。事件乱序下，使用事件时间来进行统计、窗口等计算时产生的结果是不确定的。考虑这个计算场景：统计10到15秒内的事件个数，以下图为例，11那个元素会被统计到，随后而来的元素15将会触发窗口的计算，那么统计结果是1。从图片中可以明显看到这个结果是不对的，除了11，还有12,14一共三个元素，真正的统计结果应该是3。这里设计到的窗口等概念会在接下来的章节中介绍。
+
+![A data stream with events (out of order) and watermarks](.\Flink文档.assets\stream_watermark_out_of_order.svg)
+
+​	从解决上面问题的角度出发，为了获取到完整的统计结果，要观察15后面是否还有小于15且大于等于10的元素，那么如何等待？等待多长时间呢？Flink提出了水位线的机制，水位线的出现就是为了解决这些问题的。如上图所示，在一个乱序的数据流中，随着流中数据前进，Flink会固定时间间隔的在流中插入一个水位线，例如在元素12后面插入了水位线11，表示Flink数据流中目前该当前算子11之前的元素都被处理了。
+
+​	水位线这个概念只有在应用程序使用事件时间时才会存在，当然Flink的默认时间就是事件时间。水位线是用来衡量事件时间进度，它产生于事件时间，在事件时间的基础上实现了更多功能，例如：延迟（lateness）。水位线*`T`*意味着数据流处理到了时*`T`*，即后续到达的数据事件时间不会再大于*`T`*了。但是在大多数情况下，即使水位线到了事件*`T`*后，后序还会持续来比*`T`*小的数据，这样的数据成为迟到数据（late event）。Flink提供了对于迟到数据的多种处理方式，在接下来的章节中会持续的介绍。
+
+-[]  水位线本质上也是一个时间戳
+
+-[] 水位线默认是周期性的产生；也可以自定义水位线的产生时机
+
+-[] 水位线是基于当前流中数据时间戳产生的
+
+-[] 水位线必须是单调递增的，以保证任务是一直向前推进的
 
 
-## 水位线（watermark）
+
+> todo: 对水位线的本质理解和特性还缺少很多描述，待补充
+
+​	水位线在Flink中是用`Watermark`这个类表示的，从类定义可以看出，水位线的本质就是时间戳。
+
+- 水位线的初始值为`Long.MIN_VALUE`（即数据流中尚未产生数据时）
+- 水位线为`Long.MAX_VALUE`时，表示已经到达了流末尾，该水位线是流中的最后一条数据
+
+```java
+public final class Watermark implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    /** Thread local formatter for stringifying the timestamps. */
+    private static final ThreadLocal<SimpleDateFormat> TS_FORMATTER =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
+
+    // ------------------------------------------------------------------------
+
+    /** The watermark that signifies end-of-event-time. */
+    public static final Watermark MAX_WATERMARK = new Watermark(Long.MAX_VALUE);
+
+    // ------------------------------------------------------------------------
+
+    /** The timestamp of the watermark in milliseconds. */
+    private final long timestamp;
+
+    /** Creates a new watermark with the given timestamp in milliseconds. */
+    public Watermark(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    /** Returns the timestamp associated with this Watermark. */
+    public long getTimestamp() {
+        return timestamp;
+    }
+    
+    // 省略一些其他方法......
+}
+```
+
+
+
+
 
 
 
 ### 水位线生成策略
+
+​	水位线是从事件时间提取的，水位线的生成是有多种策略的。
+
+​	水位线是可以从任何算子开始生成，如果是从source算子生成，整个Flink程序都会有水位线；如果从map算子生成，那么map算子后的所有算子都会有水位线。
+
+​	Flink中的水位线可以分为两大类：内置水位线和自定义水位线。
+
+- 内置水位线
+  - 单调递增的水位线
+  - 乱序数据流的水位线
+- 自定义水位线
+
+
+
+​	水位线在Flink中是通过`WatermarkGenerator`这个类来定义的，但该类一般是内部使用或者在自定义水位线的场景中才显示使用。一般情况下通过`WatermarkGenerator`的工厂类`WatermarkStrategy`来生成水位线，这个类也是Flink提供给用户来定义水位线的程序接口。在绝大数情况下使用该接口即可。
+
+```java
+DataStream<Event> stream = ...
+
+WatermarkStrategy<Event> strategy = WatermarkStrategy
+        .<Event>forBoundedOutOfOrderness(Duration.ofSeconds(20))
+        .withTimestampAssigner((event, timestamp) -> event.timestamp);
+
+DataStream<Event> withTimestampsAndWatermarks =
+    stream.assignTimestampsAndWatermarks(strategy);
+```
+
+
+
+```java
+public interface WatermarkStrategy<T>
+        extends TimestampAssignerSupplier<T>, WatermarkGeneratorSupplier<T> {
+
+    // ------------------------------------------------------------------------
+    //  Methods that implementors need to implement.
+    // ------------------------------------------------------------------------
+
+    /** Instantiates a WatermarkGenerator that generates watermarks according to this strategy. */
+    @Override
+    WatermarkGenerator<T> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context);
+
+    /**
+     * Instantiates a {@link TimestampAssigner} for assigning timestamps according to this strategy.
+     */
+    @Override
+    default TimestampAssigner<T> createTimestampAssigner(
+            TimestampAssignerSupplier.Context context) {
+        // By default, this is {@link RecordTimestampAssigner},
+        // for cases where records come out of a source with valid timestamps, for example from
+        // Kafka.
+        return new RecordTimestampAssigner<>();
+    }
+
+    // ------------------------------------------------------------------------
+    //  Builder methods for enriching a base WatermarkStrategy
+    // ------------------------------------------------------------------------
+
+    /**
+     * Creates a new {@code WatermarkStrategy} that wraps this strategy but instead uses the given
+     * {@link TimestampAssigner} (via a {@link TimestampAssignerSupplier}).
+     *
+     * <p>You can use this when a {@link TimestampAssigner} needs additional context, for example
+     * access to the metrics system.
+     *
+     * <pre>
+     * {@code WatermarkStrategy<Object> wmStrategy = WatermarkStrategy
+     *   .forMonotonousTimestamps()
+     *   .withTimestampAssigner((ctx) -> new MetricsReportingAssigner(ctx));
+     * }</pre>
+     */
+    default WatermarkStrategy<T> withTimestampAssigner(
+            TimestampAssignerSupplier<T> timestampAssigner) {
+        checkNotNull(timestampAssigner, "timestampAssigner");
+        return new WatermarkStrategyWithTimestampAssigner<>(this, timestampAssigner);
+    }
+
+    /**
+     * Creates a new {@code WatermarkStrategy} that wraps this strategy but instead uses the given
+     * {@link SerializableTimestampAssigner}.
+     *
+     * <p>You can use this in case you want to specify a {@link TimestampAssigner} via a lambda
+     * function.
+     *
+     * <pre>
+     * {@code WatermarkStrategy<CustomObject> wmStrategy = WatermarkStrategy
+     *   .<CustomObject>forMonotonousTimestamps()
+     *   .withTimestampAssigner((event, timestamp) -> event.getTimestamp());
+     * }</pre>
+     */
+    default WatermarkStrategy<T> withTimestampAssigner(
+            SerializableTimestampAssigner<T> timestampAssigner) {
+        checkNotNull(timestampAssigner, "timestampAssigner");
+        return new WatermarkStrategyWithTimestampAssigner<>(
+                this, TimestampAssignerSupplier.of(timestampAssigner));
+    }
+
+    /**
+     * Creates a new enriched {@link WatermarkStrategy} that also does idleness detection in the
+     * created {@link WatermarkGenerator}.
+     *
+     * <p>Add an idle timeout to the watermark strategy. If no records flow in a partition of a
+     * stream for that amount of time, then that partition is considered "idle" and will not hold
+     * back the progress of watermarks in downstream operators.
+     *
+     * <p>Idleness can be important if some partitions have little data and might not have events
+     * during some periods. Without idleness, these streams can stall the overall event time
+     * progress of the application.
+     */
+    default WatermarkStrategy<T> withIdleness(Duration idleTimeout) {
+        checkNotNull(idleTimeout, "idleTimeout");
+        checkArgument(
+                !(idleTimeout.isZero() || idleTimeout.isNegative()),
+                "idleTimeout must be greater than zero");
+        return new WatermarkStrategyWithIdleness<>(this, idleTimeout);
+    }
+    
+    // 省略一些其他方法......
+}
+```
+
+
+
+
+
+
+
+下面看下产生水位线的类：`WatermarkGenerator`
+
+
+
+```java
+public interface WatermarkGenerator<T> {
+
+    /**
+     * Called for every event, allows the watermark generator to examine and remember the event
+     * timestamps, or to emit a watermark based on the event itself.
+     */
+    void onEvent(T event, long eventTimestamp, WatermarkOutput output);
+
+    /**
+     * Called periodically, and might emit a new watermark, or not.
+     *
+     * <p>The interval in which this method is called and Watermarks are generated depends on {@link
+     * ExecutionConfig#getAutoWatermarkInterval()}.
+     */
+    void onPeriodicEmit(WatermarkOutput output);
+}
+```
+
+
+
+
+
+**乱序水位线（Bounded out of orderness Watermark）**
+
+
+
+```java
+public class BoundedOutOfOrdernessWatermarks<T> implements WatermarkGenerator<T> {
+
+    /** The maximum timestamp encountered so far. */
+    private long maxTimestamp;
+
+    /** The maximum out-of-orderness that this watermark generator assumes. */
+    private final long outOfOrdernessMillis;
+
+    /**
+     * Creates a new watermark generator with the given out-of-orderness bound.
+     *
+     * @param maxOutOfOrderness The bound for the out-of-orderness of the event timestamps.
+     */
+    public BoundedOutOfOrdernessWatermarks(Duration maxOutOfOrderness) {
+        checkNotNull(maxOutOfOrderness, "maxOutOfOrderness");
+        checkArgument(!maxOutOfOrderness.isNegative(), "maxOutOfOrderness cannot be negative");
+
+        this.outOfOrdernessMillis = maxOutOfOrderness.toMillis();
+
+        // start so that our lowest watermark would be Long.MIN_VALUE.
+        this.maxTimestamp = Long.MIN_VALUE + outOfOrdernessMillis + 1;
+    }
+
+    // ------------------------------------------------------------------------
+
+    @Override
+    public void onEvent(T event, long eventTimestamp, WatermarkOutput output) {
+        maxTimestamp = Math.max(maxTimestamp, eventTimestamp);
+    }
+
+    @Override
+    public void onPeriodicEmit(WatermarkOutput output) {
+        output.emitWatermark(new Watermark(maxTimestamp - outOfOrdernessMillis - 1));
+    }
+}
+```
+
+
+
+
 
 
 
@@ -258,11 +528,13 @@ disableChain startNewChain
 
 ### 水位线传播
 
-单并行度下和多并行度下的水位线传播
+
+
+水位线可以在任意非sink算子中设置，当水位线被设置后，后续的算子都具有水位线的功能。
 
 
 
-## 窗口（window）
+## 窗口（Window）
 
 Flink程序运行起来，第一个窗口的起始时间是多少？有啥规律？
 

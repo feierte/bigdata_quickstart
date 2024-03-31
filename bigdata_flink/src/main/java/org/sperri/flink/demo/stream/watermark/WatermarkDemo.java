@@ -25,6 +25,8 @@ public class WatermarkDemo {
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.getConfig().setAutoWatermarkInterval(200); // 设置 watermark 的产生时间间隔，时间单位是 ms
+
         DataStreamSource<EventLog> source = env.fromElements(
                 EventLog.of("1", System.currentTimeMillis(), "page01"),
                 EventLog.of("2", System.currentTimeMillis(), "page02")
