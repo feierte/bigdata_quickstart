@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.stream.Stream;
-
 /**
  * @author Jie Zhao
  * @date 2024/2/16 上午11:53
@@ -16,13 +14,14 @@ import java.util.stream.Stream;
 public class EventLog {
 
     private String uid;
+    private Long id;
     private Long time;
     private String pageId;
     private String sip;
     private String host;
 
-    public static EventLog of(String uid, Long time, String pageId) {
-        return new EventLog(uid, time, pageId, null, null);
+    public static EventLog of(String uid, Long id, Long time, String pageId) {
+        return new EventLog(uid, id, time, pageId, null, null);
     }
 
     @Override

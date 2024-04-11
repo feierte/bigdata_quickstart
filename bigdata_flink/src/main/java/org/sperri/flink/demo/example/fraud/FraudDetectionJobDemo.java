@@ -40,14 +40,14 @@ public class FraudDetectionJobDemo {
                 .name("transactions");
 
         transactions
-                .rescale()
-                .map(Transaction::getAccountId)
-                .print()
-                .setParallelism(1);
+//                .rescale()
+//                .map(Transaction::getAccountId)
+//                .print()
+//                .setParallelism(1);
 
-//		.keyBy(Transaction::getAccountId)
-//			.process(new FraudDetector())
-//			.name("fraud-detector");
+		.keyBy(Transaction::getAccountId)
+			.process(new FraudDetector())
+			.name("fraud-detector");
 
 //		alerts
 //			.addSink(new AlertSink())

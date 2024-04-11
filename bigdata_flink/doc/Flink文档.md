@@ -1,3 +1,5 @@
+> 本文档是基于Flink-1.14.4所写，非该版本内容会特别说明
+
 
 
 # 流处理API
@@ -536,19 +538,98 @@ public class BoundedOutOfOrdernessWatermarks<T> implements WatermarkGenerator<T>
 
 ## 窗口（Window）
 
-Flink程序运行起来，第一个窗口的起始时间是多少？有啥规律？
+​	窗口是Flink中的一个核心概念，窗口将一个“无限的数据流”切分成一个个“有限的小的数据流”，在“有限的小的数据流”可以进行统计、聚合等计算。这样可以实现在一个“无限的数据流”上面按照时间段进行统计等业务计算。
+
+
+
+窗口的两种应用场景
+
+**Keyed Windows**
+
+```java
+stream
+       .keyBy(...)               <-  keyed versus non-keyed windows
+       .window(...)              <-  required: "assigner"
+      [.trigger(...)]            <-  optional: "trigger" (else default trigger)
+      [.evictor(...)]            <-  optional: "evictor" (else no evictor)
+      [.allowedLateness(...)]    <-  optional: "lateness" (else zero)
+      [.sideOutputLateData(...)] <-  optional: "output tag" (else no side output for late data)
+       .reduce/aggregate/apply()      <-  required: "function"
+      [.getSideOutput(...)]      <-  optional: "output tag"
+```
+
+
+
+**Non-Keyed Windows**
+
+```java
+stream
+       .windowAll(...)           <-  required: "assigner"
+      [.trigger(...)]            <-  optional: "trigger" (else default trigger)
+      [.evictor(...)]            <-  optional: "evictor" (else no evictor)
+      [.allowedLateness(...)]    <-  optional: "lateness" (else zero)
+      [.sideOutputLateData(...)] <-  optional: "output tag" (else no side output for late data)
+       .reduce/aggregate/apply()      <-  required: "function"
+      [.getSideOutput(...)]      <-  optional: "output tag"
+```
+
+
 
 
 
 ### 窗口类别
 
+​	flink按照功能的不同提供了丰富的窗口种类，
+
+- [ ] 时间窗口（time window）
+  - 滑动时间窗口（tumbling time window）
+  - 滚动时间窗口（sliding time window）
+- [ ] 计数窗口（count window）
+- [ ] 会话窗口（session window）
+- [ ] 全局窗口（all window）
+
+其中时间窗口又可以细分为事件时间窗口和处理时间窗口。
+
+
+
+​	窗口的创建是由窗口分配器（window assigner）负责的，窗口分配器将属于该数据流中元素的0个或多个窗口分配给该元素。
+
+
+
+#### 窗口生命周期
+
+​	窗口会在第一个分配进入该窗口时创建，窗口是在时间超过（窗口结束时间 + 设置的“允许迟到时间”）后被销毁。
+
+
+
+#### **时间窗口的时间计算**
+
+Flink程序运行起来，第一个窗口的起始时间是多少？有啥规律？
+
+
+
+### 触发器（Trigger）
+
+​	窗口何时结束是由窗口触发器决定的，即决定窗口计算的时机。定义窗口时，会有个默认触发器，也可以显示的指定窗口触发器，显示指定的触发器将会覆盖默认触发器。
+
+
+
+### 驱逐器（Evictor）
+
 
 
 ### 窗口处理算子
 
+​	窗口处理算子是在窗口被触发器触发后进行计算的。有四种窗口处理算子：
+
+- [ ] `ReduceFunction`
+- [ ] `AggregateFunction`
+- [ ] `ProcessWindowFunction`
+- [ ] `WindowFunction`
 
 
-### 窗口触发器
+
+### 允许迟到数据（Allowed Lateness）
 
 
 
@@ -560,17 +641,72 @@ Flink程序运行起来，第一个窗口的起始时间是多少？有啥规律
 
 
 
-## 概述
+​	Flink在其官网上就宣称是一个有状态计算的分布式流数据处理引擎。本章节将从以下几个角度来介绍Flink中的状态管理。
+
+- 什么是状态？
+- 有哪些状态？
+- 如果管理状态？
 
 
 
-### 状态类别
+​	状态在生活中随处可见，朋友之间见面了互相问候：今天状态不错啊！这里的状态指的是精神状态和身体状况。那为什么会有这种感觉呢？因为有可能是前些日志见到过你，那时候可能刚生完病，给人的感觉是病恹恹的。所以今天在见到的时候与之前存在脑子里生病时候的状态进行了对比而得出来的结论。所以前些日子生病时候的状态被存在脑子里了。这是生活中的状态。
+
+​	Flink中也需要状态进行存储某个历史阶段的Flink状态。比如使用Flink统计网站今天的被访问次数，从凌晨算起，假设早上8点被访问了100次，但是次数突然由于某种故障导致Flink统计程序挂掉，挂掉之后重启成功后，此时需要接着统计，但是此时不能在从0次开始统计了，因为之前8个小时已经被访问了100次，这个需要被统计在内的。那么就需要Flink要有8点那个时候的状态值，并且被持久化，这样即使Flink故障重启，那么重启后接着之前的状态统计即可。
+
+
+
+## 状态类别
+
+
+
+- [ ] Managed State
+  - Keyed State
+  - Operator State（Non-keyed State）
+- [ ] Raw State
+
+
+
+​	Managed State是Flink框架自身维护的状态，Flink定义好了状态如何删除，如何持久化，如何恢复等状态管理操作，用户只需在其提供的状态API接口上面进行状态的使用即可。Raw State则需要用户自己来实现状态的持久化、状态恢复等复杂的状态管理操作。所以绝大部分用户使用Flink提供的Managed State就可以实现99%的需求场景。
+
+
+
+### 键控状态（Keyed State）
+
+​	键控状态必须在流分组后才能使用，即`stream.keyBy(...)`。
+
+
+
+### 算子状态（Operator State）
+
+​	算子状态也叫做非键控状态（Non-Keyed state）
+
+## 状态管理
+
+### 状态持久化
+
+
+
+状态后端（state backend）
+
+
+
+### 状态TTL
+
+
+
+### 状态恢复
 
 
 
 
 
 # 容错机制（Fault Tolerance）
+
+
+
+
+
+# Checkpoint
 
 
 
@@ -585,6 +721,14 @@ Flink程序运行起来，第一个窗口的起始时间是多少？有啥规律
 
 
 
+
+
+
+# 专题
+
+
+
+## 迟到数据如何处理
 
 
 
