@@ -682,11 +682,22 @@ Flink程序运行起来，第一个窗口的起始时间是多少？有啥规律
 
 ## 状态管理
 
-### 状态持久化
+
+
+### 状态后端（state backend）
 
 
 
-状态后端（state backend）
+| 实现支持   | ~~MemoryStateBackend~~ <br />HashMapStateBackend             | ~~FsStateBackend~~ <br />HashMapSateBackend                  | ~~RocksDBStateBackend~~ <br />EmbeddedRocksDBStateBackend |
+| ---------- | ------------------------------------------------------------ | ------------------------------------------------------------ | --------------------------------------------------------- |
+| 配置       | jobmanager <br />hashmap                                     | filesystem<br />hashmap                                      | rocksdb                                                   |
+| task state | TaskManager堆内存中                                          | TaskManager堆内存中                                          | TaskManager中的RocksDB实例中                              |
+| job state  | Job Manager堆内存中<br />hashmap是基于CheckpointStorage来确定的 | 外部高可用文件系统，例如HDFS<br />hashmap是基于CheckpointStorage来确定的 | 外部高可用文件系统，例如HDFS                              |
+| 缺点       | 只能保持数据量小的状态 <br>状态数据有可能丢失                | 状态大小受TaskManager内存限制（默认支持5M）                  | 状态访问速度有所下降                                      |
+| 优点       | 开发测试很方便<br>性能好                                     | 状态访问速度很快<br>状态信息不会丢失                         | 可以存储超大量的状态信息<br>状态信息不会丢失              |
+| 应用场景   | 本地开发测试                                                 | State量比较大<br>分钟级窗口的状态数据<br>生产环境使用        | State量超大<br>小时级窗口的状态数据<br>生产环境使用       |
+
+
 
 
 
