@@ -28,6 +28,20 @@
 
 # 核心组件
 
+## EventLoopGroup和EventLoop
+
+
+
+## Future和Promise
+
+## Channel
+
+## ChannelHandler
+
+## ByteByf
+
+
+
 # 应用场景
 
 ## 协议开发
@@ -35,3 +49,17 @@
 ### WebSocket协议开发
 
 ### 私有协议开发
+
+
+# 源码分析
+## ServerBootstrap 启动流程（NioServerSocketChannel初始化流程）
+
+## NioSocketChannel 初始化流程
+
+## NioServerSocketChannel 读取数据流程
+
+## NioSocketChannel 写入数据流程
+
+### ChannelOutboundBuffer 分析
+
+### 对象池 ObjectPool 分析
